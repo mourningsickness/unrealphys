@@ -1,4 +1,5 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #define UNREALPHYS_VERSION "1.2"
 
@@ -10,6 +11,8 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+
+chatstrings_t gS_ChatStrings;
 
 enum struct GunJumpConfig
 {
@@ -28,6 +31,7 @@ int	g_TotalGuns;
 
 // Dodging
 float g_LastSideMove[MAXPLAYERS + 1][2];
+float g_LastBoostPos[MAXPLAYERS + 1][3];
 int g_LastDodgeTick[MAXPLAYERS + 1];
 int g_LandingTick[MAXPLAYERS + 1];
 int g_LastTapTick[MAXPLAYERS + 1];
@@ -92,6 +96,13 @@ public void OnPluginStart()
 			g_bUnrealClients[i] = IsStyleUnreal(Shavit_GetBhopStyle(i));
 		}
 	}
+	
+	Shavit_OnChatConfigLoaded();
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStringsStruct(g_sChatStrings);
 }
 
 public Action Command_Glock(int client, int args)
@@ -104,7 +115,7 @@ public Action Command_Glock(int client, int args)
 	IntToString(view_as<int>(g_USPUsers[client]), sCookie, 4);
 	SetClientCookie(client, gH_USPCookie, sCookie);
 
-	Shavit_PrintToChat(client, "Using Glock for Unreal.");
+	Shavit_PrintToChat(client, "Using %sglock %sfor Unreal", gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	return Plugin_Handled;
 }
 
@@ -118,7 +129,7 @@ public Action Command_USP(int client, int args)
 	IntToString(view_as<int>(g_USPUsers[client]), sCookie, 4);
 	SetClientCookie(client, gH_USPCookie, sCookie);
 
-	Shavit_PrintToChat(client, "Using USP for Unreal.");
+	Shavit_PrintToChat(client, "Using %sUSP %sfor Unreal", gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	return Plugin_Handled;
 }
 
@@ -251,7 +262,7 @@ public void Shavit_OnStyleChanged(int client, int oldStyle, int newStyle)
 {
 	if(IsStyleUnreal(newStyle))
 	{
-		Shavit_PrintToChat(client, "Use !unrealglock or !unrealusp to set your default pistol.");
+		Shavit_PrintToChat(client, "Use %s!unrealglock %sor %s!unrealusp %sto set your default pistol", gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		g_bUnrealClients[client] = true;
 		givegunstuff(client);
 	}
@@ -285,9 +296,9 @@ public Action SM_ReloadGJ(int client, int args)
 	return Plugin_Handled;
 }
 
-FindWeaponConfigByWeaponName(const char[] sWeapon)
+public int FindWeaponConfigByWeaponName(const char[] sWeapon)
 {
-	for(new i; i < g_TotalGuns; i++)
+	for(int i; i < g_TotalGuns; i++)
 	{
 		if(StrEqual(sWeapon, g_GunJumpConfig[i].Weapon))
 		{
@@ -300,15 +311,17 @@ FindWeaponConfigByWeaponName(const char[] sWeapon)
 
 void LoadGunJumpConfig()
 {
-	decl String:sPath[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/shavit-unreal.cfg");
 	
-	new Handle:kv = CreateKeyValues("Gun Jump Settings");
+	Handle kv = CreateKeyValues("Gun Jump Settings");
 	FileToKeyValues(kv, sPath);
 	
 	if(kv != INVALID_HANDLE)
 	{
-		new Key, bool:KeyExists = true, String:sKey[32];
+		int Key;
+		bool KeyExists = true;
+		char sKey[32];
 		
 		do
 		{
@@ -348,24 +361,31 @@ void LoadGunJumpConfig()
 	}
 }
 
-public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
+public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	
 	if(!(0 < client <= MaxClients))
 	{
-		return;
+		return Plugin_Handled;
 	}
 	
 	if(IsFakeClient(client))
 	{
-		return;
+		return Plugin_Handled;
 	}
 	
 	if(!IsPlayerUsingUnreal(client))
 	{
-		return;
+		return Plugin_Handled;
 	}
+	
+	float vPos[3];
+	GetClientEyePosition(client, vPos);
+	
+	// Stop boost if position same as last boost (prevent the noclip in ground vel storage exploit)
+	if(g_LastBoostPos[client][0] == vPos[0] && g_LastBoostPos[client][1] == vPos[1] && g_LastBoostPos[client][2] == vPos[2])
+		return Plugin_Handled;
 	
 	// Stop boost if invalid weapon
 	char sWeapon[64];
@@ -374,7 +394,7 @@ public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 		Format(sWeapon, sizeof(sWeapon), "weapon_%s", sWeapon);
 	int GunConfig = FindWeaponConfigByWeaponName(sWeapon);
 	if(GunConfig == -1)
-		return;
+		return Plugin_Handled;
 		
 	int slot2 = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
 	if (IsValidEntity(slot2))
@@ -384,9 +404,6 @@ public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 			SetEntProp(slot2, Prop_Data, "m_iClip1", g_GunJumpConfig[GunConfig].Primary_Clip_Max_Size + 1);
 		}
 	}
-	
-	float vPos[3];
-	GetClientEyePosition(client, vPos);
 	
 	float vAng[3];
 	GetClientEyeAngles(client, vAng);
@@ -419,13 +436,17 @@ public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vVel);
 			AddVectors(vPush, vVel, vResult);
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vResult);
+			
+			g_LastBoostPos[client][0] = vPos[0];
+			g_LastBoostPos[client][1] = vPos[1];
+			g_LastBoostPos[client][2] = vPos[2];
 		}
 	}
 	
-	return;
+	return Plugin_Handled;
 }
 
-public bool TraceRayDontHitSelf(entity, mask, any:data)
+public bool TraceRayDontHitSelf(int entity, int mask, any data)
 {
 	if(entity == data)
 	{
@@ -477,7 +498,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	g_LastButtons[client]     = Unreal_GetButtons(client);
 }
 
-CheckForKeyTap(int client, float vel[3])
+public void CheckForKeyTap(int client, float vel[3])
 {
 	if(GetEntityFlags(client) & FL_ONGROUND)
 	{
@@ -506,7 +527,7 @@ CheckForKeyTap(int client, float vel[3])
 		OnClientTappedKey(client, IN_BACK);
 }
 
-OnClientTappedKey(int client, int Key)
+public void OnClientTappedKey(int client, int Key)
 {
 	if(g_LastTapKey[client] == Key && (float(GetGameTickCount())*GetTickInterval() - float(g_LastTapTick[client])*GetTickInterval() < 0.2))
 	{
@@ -517,7 +538,7 @@ OnClientTappedKey(int client, int Key)
 	g_LastTapTick[client] = GetGameTickCount();
 }
 
-OnClientDoubleTappedKey(int client, int Key)
+public void OnClientDoubleTappedKey(int client, int Key)
 {
 	float vAng[3];
 	GetClientEyeAngles(client, vAng);
@@ -620,9 +641,11 @@ public Action Timer_Dodge(Handle timer, DataPack data)
 	
 	g_bWaitingForGround[client] = true;
 	g_bCanDodge[client]         = false;
+	
+	return Plugin_Handled;
 }
 
-CheckForJumpTap(int client, int buttons)
+public void CheckForJumpTap(int client, int buttons)
 {
 	if(!(GetEntityFlags(client) & FL_ONGROUND))
 	{
