@@ -102,7 +102,7 @@ public void OnPluginStart()
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStringsStruct(g_sChatStrings);
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 public Action Command_Glock(int client, int args)
@@ -367,17 +367,17 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcas
 	
 	if(!(0 < client <= MaxClients))
 	{
-		return Plugin_Handled;
+		return Plugin_Continue;
 	}
 	
 	if(IsFakeClient(client))
 	{
-		return Plugin_Handled;
+		return Plugin_Continue;
 	}
 	
 	if(!IsPlayerUsingUnreal(client))
 	{
-		return Plugin_Handled;
+		return Plugin_Continue;
 	}
 	
 	float vPos[3];
@@ -385,7 +385,7 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcas
 	
 	// Stop boost if position same as last boost (prevent the noclip in ground vel storage exploit)
 	if(g_LastBoostPos[client][0] == vPos[0] && g_LastBoostPos[client][1] == vPos[1] && g_LastBoostPos[client][2] == vPos[2])
-		return Plugin_Handled;
+		return Plugin_Continue;
 	
 	// Stop boost if invalid weapon
 	char sWeapon[64];
@@ -394,7 +394,7 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcas
 		Format(sWeapon, sizeof(sWeapon), "weapon_%s", sWeapon);
 	int GunConfig = FindWeaponConfigByWeaponName(sWeapon);
 	if(GunConfig == -1)
-		return Plugin_Handled;
+		return Plugin_Continue;
 		
 	int slot2 = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
 	if (IsValidEntity(slot2))
@@ -443,7 +443,7 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcas
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Continue;
 }
 
 public bool TraceRayDontHitSelf(int entity, int mask, any data)
