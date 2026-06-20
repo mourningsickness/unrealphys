@@ -105,7 +105,7 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
-public Action Command_Glock(int client, int args)
+Action Command_Glock(int client, int args)
 {
 	if(!IsValidClient(client))
 		return Plugin_Handled;
@@ -119,7 +119,7 @@ public Action Command_Glock(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Command_USP(int client, int args)
+Action Command_USP(int client, int args)
 {
 	if(!IsValidClient(client))
 		return Plugin_Handled;
@@ -174,7 +174,7 @@ bool IsPlayerUsingUnreal(int client)
 	return g_bUnrealClients[client];
 }
 
-public void OnModifiedUnrealChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+void OnModifiedUnrealChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_bModifiedUnreal = GetConVarBool(g_hModifiedUnreal);
 }
@@ -214,7 +214,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 }
 
 // counter-act bhoptimer !Hud setting that you can use to make glocks burst fire
-public Action Hook_GunTouchPost(int entity, int client)
+Action Hook_GunTouchPost(int entity, int client)
 {
 	if (1 <= client <= MaxClients && g_bUnrealClients[client])
 	{
@@ -272,7 +272,7 @@ public void Shavit_OnStyleChanged(int client, int oldStyle, int newStyle)
 	}
 }
 
-public void NextFrame_EquipWeapon(Handle pack)
+void NextFrame_EquipWeapon(Handle pack)
 {
 	ResetPack(pack);
 	int client = GetClientOfUserId(ReadPackCell(pack));
@@ -287,7 +287,7 @@ public void NextFrame_EquipWeapon(Handle pack)
 	delete pack;
 }
 
-public Action SM_ReloadGJ(int client, int args)
+Action SM_ReloadGJ(int client, int args)
 {	
 	LoadGunJumpConfig();
 	
@@ -296,7 +296,7 @@ public Action SM_ReloadGJ(int client, int args)
 	return Plugin_Handled;
 }
 
-public int FindWeaponConfigByWeaponName(const char[] sWeapon)
+int FindWeaponConfigByWeaponName(const char[] sWeapon)
 {
 	for(int i; i < g_TotalGuns; i++)
 	{
@@ -361,7 +361,7 @@ void LoadGunJumpConfig()
 	}
 }
 
-public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
+Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	
@@ -446,7 +446,7 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dontBroadcas
 	return Plugin_Continue;
 }
 
-public bool TraceRayDontHitSelf(int entity, int mask, any data)
+bool TraceRayDontHitSelf(int entity, int mask, any data)
 {
 	if(entity == data)
 	{
@@ -498,7 +498,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	g_LastButtons[client]     = Unreal_GetButtons(client);
 }
 
-public void CheckForKeyTap(int client, float vel[3])
+void CheckForKeyTap(int client, float vel[3])
 {
 	if(GetEntityFlags(client) & FL_ONGROUND)
 	{
@@ -527,7 +527,7 @@ public void CheckForKeyTap(int client, float vel[3])
 		OnClientTappedKey(client, IN_BACK);
 }
 
-public void OnClientTappedKey(int client, int Key)
+void OnClientTappedKey(int client, int Key)
 {
 	if(g_LastTapKey[client] == Key && (float(GetGameTickCount())*GetTickInterval() - float(g_LastTapTick[client])*GetTickInterval() < 0.2))
 	{
@@ -538,7 +538,7 @@ public void OnClientTappedKey(int client, int Key)
 	g_LastTapTick[client] = GetGameTickCount();
 }
 
-public void OnClientDoubleTappedKey(int client, int Key)
+void OnClientDoubleTappedKey(int client, int Key)
 {
 	float vAng[3];
 	GetClientEyeAngles(client, vAng);
@@ -583,7 +583,7 @@ public void OnClientDoubleTappedKey(int client, int Key)
 		NegateVector(vTraceAngle);
 		GetVectorAngles(vTraceAngle, vTraceAngle);
 		
-		TR_TraceRayFilter(vPos, vTraceAngle, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, TraceRayDontHitSelf, client);
+		TR_TraceRayFilter(vPos, vTraceAngle, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, , client);
 		
 		if(TR_DidHit())
 		{
@@ -627,7 +627,7 @@ public void OnClientDoubleTappedKey(int client, int Key)
 	}
 }
 
-public Action Timer_Dodge(Handle timer, DataPack data)
+Action Timer_Dodge(Handle timer, DataPack data)
 {
 	ResetPack(data);
 	int client = ReadPackCell(data);
@@ -645,7 +645,7 @@ public Action Timer_Dodge(Handle timer, DataPack data)
 	return Plugin_Handled;
 }
 
-public void CheckForJumpTap(int client, int buttons)
+void CheckForJumpTap(int client, int buttons)
 {
 	if(!(GetEntityFlags(client) & FL_ONGROUND))
 	{
