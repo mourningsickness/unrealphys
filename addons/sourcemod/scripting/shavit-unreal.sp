@@ -245,16 +245,6 @@ void givegunstuff(int client)
 			GivePlayerItem(client, (GetEngineVersion() == Engine_CSGO) ? "weapon_usp_silencer" : "weapon_usp");
 		else
 			GivePlayerItem(client, "weapon_glock");
-		
-		/*
-		if(weaponIndex != -1)
-		{
-			Handle hPack = CreateDataPack();
-			WritePackCell(hPack, GetClientUserId(client));
-			WritePackCell(hPack, EntIndexToEntRef(weaponIndex));
-			RequestFrame(NextFrame_EquipWeapon, hPack);
-		}
-		*/
 	}
 }
 
@@ -270,21 +260,6 @@ public void Shavit_OnStyleChanged(int client, int oldStyle, int newStyle)
 	{
 		g_bUnrealClients[client] = false;
 	}
-}
-
-void NextFrame_EquipWeapon(Handle pack)
-{
-	ResetPack(pack);
-	int client = GetClientOfUserId(ReadPackCell(pack));
-	if(client != 0)
-	{
-		int weaponIndex = EntRefToEntIndex(ReadPackCell(pack));
-		if(weaponIndex != INVALID_ENT_REFERENCE)
-		{
-			EquipPlayerWeapon(client, weaponIndex);
-		}
-	}
-	delete pack;
 }
 
 Action SM_ReloadGJ(int client, int args)
