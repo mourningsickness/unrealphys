@@ -583,7 +583,7 @@ void OnClientDoubleTappedKey(int client, int Key)
 		NegateVector(vTraceAngle);
 		GetVectorAngles(vTraceAngle, vTraceAngle);
 		
-		TR_TraceRayFilter(vPos, vTraceAngle, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, , client);
+		TR_TraceRayFilter(vPos, vTraceAngle, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, TraceRayDontHitSelf, client);
 		
 		if(TR_DidHit())
 		{
